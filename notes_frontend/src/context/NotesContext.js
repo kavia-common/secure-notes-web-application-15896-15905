@@ -3,7 +3,7 @@ import { storage } from '../services/storage';
 
 /**
  * Note shape used in the app.
- * id: string, title: string, content: string, updatedAt: number
+ * id: string, title: string, content: string, updatedAt: number, reminder?: string|null (ISO)
  */
 const NotesContext = createContext(null);
 
@@ -11,6 +11,13 @@ const NotesContext = createContext(null);
  * Generate a simple unique id. For production, swap with uuid.
  */
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+/** Utility: parse reminder ISO into Date or null */
+const parseReminderDate = (iso) => {
+  if (!iso || typeof iso !== 'string') return null;
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : d;
+};
 
 /**
  * PUBLIC_INTERFACE
@@ -49,6 +56,7 @@ export function NotesProvider({ children }) {
       title: 'Untitled note',
       content: '',
       updatedAt: Date.now(),
+      reminder: null,
     };
     setNotes(prev => [newNote, ...prev]);
     setSelectedId(newNote.id);
@@ -75,13 +83,43 @@ export function NotesProvider({ children }) {
   // PUBLIC_INTERFACE
   const selectNote = (id) => setSelectedId(id);
 
+  // PUBLIC_INTERFACE
+  const setReminder = (id, isoOrNull) => {
+    updateNote(id, { reminder: isoOrNull || null });
+  };
+
+  // Derived: reminders list (upcoming & overdue)
+  const reminders = useMemo(() => {
+    const now = Date.now();
+    const soonThresholdMs = 24 * 60 * 60 * 1000; // 24h
+    const items = notes
+      .map(n => {
+        const d = parseReminderDate(n.reminder);
+        if (!d) return null;
+        const time = d.getTime();
+        const overdue = time < now;
+        const soon = !overdue && time - now <= soonThresholdMs;
+        return {
+          id: n.id,
+          title: n.title || 'Untitled note',
+          when: d,
+          overdue,
+          soon,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.when.getTime() - b.when.getTime());
+    return items;
+  }, [notes]);
+
   const value = {
     notes,
     filteredNotes,
     currentNote,
     selectedId,
     query,
-    actions: { createNote, updateNote, deleteNote, selectNote, setQuery },
+    reminders,
+    actions: { createNote, updateNote, deleteNote, selectNote, setQuery, setReminder },
   };
 
   return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;

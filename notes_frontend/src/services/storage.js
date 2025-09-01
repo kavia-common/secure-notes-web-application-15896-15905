@@ -3,6 +3,8 @@ const STORAGE_KEY = 'notes_app_items_v1';
 /**
  * PUBLIC_INTERFACE
  * Simple localStorage-backed persistence for notes.
+ * Now includes reminder support. Each note may have:
+ * - reminder: string | null (ISO datetime string: 'YYYY-MM-DD' or 'YYYY-MM-DDTHH:mm')
  */
 export const storage = {
   /** Load notes array from storage. */
@@ -20,6 +22,8 @@ export const storage = {
           title: String(n.title || 'Untitled note'),
           content: String(n.content || ''),
           updatedAt: typeof n.updatedAt === 'number' ? n.updatedAt : Date.now(),
+          // reminder persisted as ISO string or null when absent
+          reminder: typeof n.reminder === 'string' ? n.reminder : null,
         }));
     } catch {
       return [];
@@ -29,7 +33,14 @@ export const storage = {
   /** Save notes array to storage. */
   save(notes) {
     try {
-      const data = JSON.stringify(notes || []);
+      const sanitized = (notes || []).map(n => ({
+        id: n.id,
+        title: n.title,
+        content: n.content,
+        updatedAt: n.updatedAt,
+        reminder: n.reminder ?? null,
+      }));
+      const data = JSON.stringify(sanitized);
       window.localStorage.setItem(STORAGE_KEY, data);
       return true;
     } catch {
