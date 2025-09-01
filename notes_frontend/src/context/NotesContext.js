@@ -3,7 +3,7 @@ import { storage } from '../services/storage';
 
 /**
  * Note shape used in the app.
- * id: string, title: string, content: string, updatedAt: number, reminder?: string|null (ISO)
+ * id: string, title: string, content: string, updatedAt: number, reminder?: string|null (ISO), status?: 'todo'|'inprogress'|'done'
  */
 const NotesContext = createContext(null);
 
@@ -57,6 +57,7 @@ export function NotesProvider({ children }) {
       content: '',
       updatedAt: Date.now(),
       reminder: null,
+      status: 'todo',
     };
     setNotes(prev => [newNote, ...prev]);
     setSelectedId(newNote.id);
@@ -148,6 +149,10 @@ export function NotesProvider({ children }) {
     return items;
   }, [notes]);
 
+  const moveNote = (id, status) => {
+    updateNote(id, { status });
+  };
+
   const value = {
     notes,
     filteredNotes,
@@ -155,7 +160,7 @@ export function NotesProvider({ children }) {
     selectedId,
     query,
     reminders,
-    actions: { createNote, updateNote, deleteNote, selectNote, setQuery, setReminder, createReminder },
+    actions: { createNote, updateNote, deleteNote, selectNote, setQuery, setReminder, createReminder, moveNote },
   };
 
   return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;

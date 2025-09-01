@@ -24,6 +24,8 @@ export const storage = {
           updatedAt: typeof n.updatedAt === 'number' ? n.updatedAt : Date.now(),
           // reminder persisted as ISO string or null when absent
           reminder: typeof n.reminder === 'string' ? n.reminder : null,
+          // new kanban status with fallback to 'todo'
+          status: typeof n.status === 'string' ? n.status : 'todo',
         }));
     } catch {
       return [];
@@ -39,6 +41,7 @@ export const storage = {
         content: n.content,
         updatedAt: n.updatedAt,
         reminder: n.reminder ?? null,
+        status: n.status ?? 'todo',
       }));
       const data = JSON.stringify(sanitized);
       window.localStorage.setItem(STORAGE_KEY, data);
