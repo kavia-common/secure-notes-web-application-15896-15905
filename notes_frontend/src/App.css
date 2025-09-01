@@ -1,21 +1,32 @@
 :root {
-  /* Theme palette per requirements */
-  --color-primary: #3366cc;
-  --color-accent: #ffcc00;
-  --color-secondary: #f7f7fa;
+  /* Black & White theme palette */
+  --color-primary: #000000;   /* primary is black */
+  --color-accent: #000000;    /* accent now also black for pure B/W */
+  --color-secondary: #ffffff; /* secondary becomes white */
 
+  /* Backgrounds */
   --bg-app: #ffffff;
-  --bg-surface: var(--color-secondary);
+  --bg-surface: #ffffff;      /* surfaces on white to remain minimal */
   --bg-sidebar: #ffffff;
   --bg-editor: #ffffff;
 
-  --text-primary: #1a1a1a;
-  --text-secondary: #6b7280;
-  --border: #e5e7eb;
+  /* Text and borders */
+  --text-primary: #000000;    /* primary text is black */
+  --text-secondary: #4d4d4d;  /* muted gray for contrast while staying monochrome */
+  --border: #cccccc;          /* subtle gray borders */
 
+  /* Radius and shadows remain subtle (still grayscale) */
   --radius: 10px;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 10px rgba(0,0,0,0.08);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 10px rgba(0,0,0,0.12);
+
+  /* Optional BW utility tokens for internal components using inline styles */
+  --bw-white: #ffffff;
+  --bw-black: #000000;
+  --bw-gray-100: #f5f5f5;
+  --bw-gray-200: #eeeeee;
+  --bw-gray-300: #e0e0e0;
+  --bw-gray-400: #cccccc;
 }
 
 /* Base reset and typography */
@@ -93,9 +104,10 @@ body {
   color: #fff;
 }
 .btn-accent {
+  /* Accent becomes an outlined black button on white for B/W minimalism */
   border-color: var(--color-accent);
-  background: var(--color-accent);
-  color: #1a1a1a;
+  background: #fff;
+  color: var(--color-primary);
 }
 
 /* Content area: sidebar + editor */
@@ -156,7 +168,7 @@ body {
   transition: border-color .2s ease, box-shadow .2s ease, transform .04s ease;
 }
 .note-item:hover { border-color: var(--color-primary); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
-.note-item.active { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(51,102,204,0.12); }
+.note-item.active { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(0,0,0,0.12); }
 .note-title {
   font-weight: 700;
   font-size: 14px;
@@ -210,7 +222,7 @@ body {
 }
 .input-title:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(51,102,204,0.12);
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.12);
 }
 
 .textarea-body {
@@ -229,7 +241,7 @@ body {
 }
 .textarea-body:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(51,102,204,0.12);
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.12);
 }
 
 /* Empty State */

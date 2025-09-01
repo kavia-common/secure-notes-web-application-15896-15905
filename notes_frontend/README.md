@@ -6,10 +6,10 @@ Minimalistic, responsive notes UI with light theme and a clean layout.
 - Create, edit, and delete notes
 - List and search notes
 - Responsive layout: top bar, sidebar (navigation + search), main pane (editor)
-- Light theme with palette:
-  - Primary: `#3366cc`
-  - Accent: `#ffcc00`
-  - Secondary: `#f7f7fa`
+- Light theme with palette (Black & White):
+  - Primary: `#000000`
+  - Accent: `#000000`
+  - Secondary: `#ffffff`
 - LocalStorage persistence (no backend required)
 
 ## Quick Start
