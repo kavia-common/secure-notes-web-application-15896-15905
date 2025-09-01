@@ -147,7 +147,7 @@ export default function Topbar({ viewMode = 'editor', onChangeView = () => {} })
                     alignItems: 'start',
                     gap: 8,
                     textAlign: 'left',
-                    background: '#fff',
+                    background: 'var(--bw-white)',
                   }}
                   title={t.description}
                 >

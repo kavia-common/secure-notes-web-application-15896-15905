@@ -29,7 +29,7 @@ function TemplatePickerButton({ onPick = () => {} }) {
             left: 0,
             top: 'calc(100% + 6px)',
             minWidth: 260,
-            background: '#fff',
+            background: 'var(--bw-white)',
             border: '1px solid var(--border)',
             borderRadius: 10,
             boxShadow: 'var(--shadow-md)',
@@ -51,7 +51,7 @@ function TemplatePickerButton({ onPick = () => {} }) {
                 alignItems: 'start',
                 gap: 8,
                 textAlign: 'left',
-                background: '#fff',
+                background: 'var(--bw-white)',
               }}
               title={t.description}
             >
@@ -78,9 +78,10 @@ export default function Sidebar() {
   const [linkToCurrent, setLinkToCurrent] = useState(true);
 
   const badgeStyle = (overdue, soon) => {
-    if (overdue) return { background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' };
-    if (soon) return { background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' };
-    return { background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe' };
+    // grayscale variants for states
+    if (overdue) return { background: 'var(--bw-gray-100)', color: 'var(--bw-black)', border: '1px solid var(--bw-gray-400)' };
+    if (soon) return { background: 'var(--bw-gray-100)', color: 'var(--bw-black)', border: '1px solid var(--bw-gray-300)' };
+    return { background: 'var(--bw-white)', color: 'var(--bw-black)', border: '1px solid var(--border)' };
   };
 
   const resetQuickForm = () => {
@@ -124,7 +125,7 @@ export default function Sidebar() {
         parts.push(<span key={`t-${cursor}-${start}`}>{text.slice(cursor, start)}</span>);
       }
       parts.push(
-        <mark key={`m-${start}-${end}`} style={{ background: 'rgba(255,204,0,0.4)', padding: 0 }}>
+        <mark key={`m-${start}-${end}`} style={{ background: 'var(--bw-gray-200)', color: 'inherit', padding: 0 }}>
           {text.slice(start, end)}
         </mark>
       );
@@ -178,7 +179,7 @@ export default function Sidebar() {
               padding: 10,
               border: '1px solid var(--border)',
               borderRadius: 10,
-              background: '#fff',
+              background: 'var(--bw-white)',
               boxShadow: 'var(--shadow-sm)',
               display: 'grid',
               gap: 8
@@ -265,9 +266,9 @@ export default function Sidebar() {
                   padding: '4px 10px',
                   fontSize: 12,
                   borderRadius: 999,
-                  background: isActive ? 'var(--color-primary)' : '#fff',
-                  borderColor: isActive ? 'var(--color-primary)' : 'var(--border)',
-                  color: isActive ? '#fff' : 'var(--text-primary)'
+                  background: isActive ? 'var(--bw-black)' : 'var(--bw-white)',
+                  borderColor: isActive ? 'var(--bw-black)' : 'var(--border)',
+                  color: isActive ? 'var(--bw-white)' : 'var(--text-primary)'
                 }}
               >
                 #{tag}
@@ -398,8 +399,8 @@ export default function Sidebar() {
                         padding: '1px 6px',
                         borderRadius: 999,
                         border: '1px solid var(--border)',
-                        background: '#eef2ff',
-                        color: '#3730a3'
+                        background: 'var(--muted-bg)',
+                        color: 'var(--text-primary)'
                       }}
                     >
                       #{t}
@@ -424,7 +425,7 @@ export default function Sidebar() {
 
               <div className="note-meta">
                 <span>{updated}</span>
-                {isActive && <span style={{ color: 'var(--color-primary)' }}>Selected</span>}
+                {isActive && <span style={{ color: 'var(--bw-black)' }}>Selected</span>}
               </div>
             </div>
           );

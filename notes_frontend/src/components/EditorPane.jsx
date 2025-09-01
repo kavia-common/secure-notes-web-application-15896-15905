@@ -179,8 +179,8 @@ export default function EditorPane() {
                   padding: '3px 8px',
                   borderRadius: 999,
                   border: '1px solid var(--border)',
-                  background: '#f1f5f9',
-                  color: '#334155',
+                  background: 'var(--muted-bg)',
+                  color: 'var(--text-primary)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6

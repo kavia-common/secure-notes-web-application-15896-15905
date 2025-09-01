@@ -1,21 +1,41 @@
 :root {
-  /* Theme palette per requirements */
-  --color-primary: #3366cc;
-  --color-accent: #ffcc00;
-  --color-secondary: #f7f7fa;
+  /* Black & White minimal palette */
+  --bw-black: #000000;
+  --bw-white: #ffffff;
+  --bw-gray-50: #fafafa;
+  --bw-gray-100: #f5f5f5;
+  --bw-gray-200: #eeeeee;
+  --bw-gray-300: #e5e5e5;
+  --bw-gray-400: #cccccc;
+  --bw-gray-500: #999999;
+  --bw-gray-600: #777777;
+  --bw-gray-700: #555555;
+  --bw-gray-800: #333333;
+  --bw-gray-900: #111111;
 
-  --bg-app: #ffffff;
-  --bg-surface: var(--color-secondary);
-  --bg-sidebar: #ffffff;
-  --bg-editor: #ffffff;
+  /* Replace previous theme variables with grayscale */
+  --color-primary: var(--bw-black);   /* retained name for component styles compatibility */
+  --color-accent: var(--bw-black);    /* no accent color; map to black */
+  --color-secondary: var(--bw-gray-100);
 
-  --text-primary: #1a1a1a;
-  --text-secondary: #6b7280;
-  --border: #e5e7eb;
+  --bg-app: var(--bw-white);
+  --bg-surface: var(--bw-gray-100);
+  --bg-sidebar: var(--bw-white);
+  --bg-editor: var(--bw-white);
+
+  --text-primary: var(--bw-black);
+  --text-secondary: var(--bw-gray-600);
+  --border: var(--bw-gray-300);
 
   --radius: 10px;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 10px rgba(0,0,0,0.08);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 10px rgba(0,0,0,0.10);
+
+  /* States */
+  --focus-ring: rgba(0,0,0,0.18);
+  --hover-ring: rgba(0,0,0,0.12);
+  --muted-bg: var(--bw-gray-100);
+  --muted-bg-strong: var(--bw-gray-200);
 }
 
 /* Base reset and typography */
@@ -60,8 +80,8 @@ body {
   display: grid;
   place-items: center;
   border-radius: 8px;
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--bw-black);
+  color: var(--bw-white);
   box-shadow: var(--shadow-sm);
   font-size: 16px;
 }
@@ -75,7 +95,7 @@ body {
 .btn {
   appearance: none;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--bw-white);
   color: var(--text-primary);
   padding: 8px 12px;
   border-radius: 8px;
@@ -85,17 +105,19 @@ body {
   cursor: pointer;
   transition: transform .04s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
 }
-.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); background: var(--muted-bg); }
 .btn:active { transform: translateY(0); }
+.btn:focus { outline: none; box-shadow: 0 0 0 3px var(--focus-ring); }
+
 .btn-primary {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: #fff;
+  border-color: var(--bw-black);
+  background: var(--bw-black);
+  color: var(--bw-white);
 }
 .btn-accent {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
-  color: #1a1a1a;
+  border-color: var(--bw-black);
+  background: var(--bw-white);
+  color: var(--bw-black);
 }
 
 /* Content area: sidebar + editor */
@@ -125,7 +147,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--color-secondary);
+  background: var(--muted-bg);
   border: 1px solid var(--border);
   padding: 10px 12px;
   border-radius: 10px;
@@ -155,8 +177,8 @@ body {
   cursor: pointer;
   transition: border-color .2s ease, box-shadow .2s ease, transform .04s ease;
 }
-.note-item:hover { border-color: var(--color-primary); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
-.note-item.active { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(51,102,204,0.12); }
+.note-item:hover { border-color: var(--bw-black); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.note-item.active { border-color: var(--bw-black); box-shadow: 0 0 0 3px var(--hover-ring); }
 .note-title {
   font-weight: 700;
   font-size: 14px;
@@ -216,8 +238,8 @@ body {
   font-size: 14px;
 }
 .input-title:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(51,102,204,0.12);
+  border-color: var(--bw-black);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .textarea-body {
@@ -235,8 +257,8 @@ body {
   transition: border-color .2s ease, box-shadow .2s ease;
 }
 .textarea-body:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(51,102,204,0.12);
+  border-color: var(--bw-black);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 /* Empty State */
@@ -334,22 +356,23 @@ body {
 }
 
 .calendar-cell:hover {
-  border-color: var(--color-primary);
+  border-color: var(--bw-black);
   transform: translateY(-1px);
 }
 
 .calendar-cell.is-selected {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(51,102,204,0.12);
+  border-color: var(--bw-black);
+  box-shadow: 0 0 0 3px var(--hover-ring);
 }
 
 .calendar-cell.out-month {
-  background: #fafafa;
+  background: var(--bw-gray-50);
   color: var(--text-secondary);
+  opacity: 0.9;
 }
 
 .calendar-cell.is-today .calendar-date-label {
-  color: var(--color-primary);
+  color: var(--bw-black);
   font-weight: 700;
 }
 
@@ -370,20 +393,21 @@ body {
   border-radius: 999px;
   border: 1px solid var(--border);
   width: fit-content;
-  background: #fff;
+  background: var(--bw-white);
+  color: var(--text-primary);
   box-shadow: var(--shadow-sm);
 }
 
 .chip-reminder {
-  background: #eef2ff;
-  border-color: #c7d2fe;
-  color: #3730a3;
+  background: var(--muted-bg);
+  border-color: var(--border);
+  color: var(--bw-black);
 }
 
 .chip-note {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
-  color: #334155;
+  background: var(--bw-white);
+  border-color: var(--border);
+  color: var(--text-primary);
 }
 
 .calendar-more {
@@ -421,7 +445,7 @@ body {
 
 .calendar-selected-item:hover {
   transform: translateY(-1px);
-  border-color: var(--color-primary);
+  border-color: var(--bw-black);
   box-shadow: var(--shadow-sm);
 }
 
@@ -492,7 +516,7 @@ body {
   border-radius: 10px;
   padding: 16px;
   text-align: center;
-  background: #fafafa;
+  background: var(--bw-gray-50);
 }
 
 .kanban-card {
@@ -507,7 +531,7 @@ body {
 
 .kanban-card:hover {
   transform: translateY(-1px);
-  border-color: var(--color-primary);
+  border-color: var(--bw-black);
 }
 
 .kanban-card.is-dragging {
@@ -529,8 +553,8 @@ body {
   padding: 2px 6px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: #eef2ff;
-  color: #3730a3;
+  background: var(--muted-bg);
+  color: var(--text-primary);
 }
 
 /* Small generic chip style used for tags (kept minimal to avoid conflicts) */
@@ -539,8 +563,8 @@ body {
   padding: 3px 8px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--muted-bg);
+  color: var(--text-primary);
 }
 
 .kc-snippet {

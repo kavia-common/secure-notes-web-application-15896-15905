@@ -36,9 +36,9 @@ export default function DailyAgenda() {
   const Card = ({ icon, title, sub, onClick, tone = 'default' }) => {
     const toneStyle =
       tone === 'danger'
-        ? { borderColor: '#fecaca', background: '#fff1f2' }
+        ? { borderColor: 'var(--bw-gray-400)', background: 'var(--bw-gray-100)' }
         : tone === 'warning'
-          ? { borderColor: '#fed7aa', background: '#fff7ed' }
+          ? { borderColor: 'var(--bw-gray-300)', background: 'var(--bw-gray-100)' }
           : {};
     return (
       <div
@@ -53,7 +53,7 @@ export default function DailyAgenda() {
           gap: 10,
           border: '1px solid var(--border)',
           borderRadius: 10,
-          background: '#fff',
+          background: 'var(--bw-white)',
           padding: '10px 12px',
           boxShadow: 'var(--shadow-sm)',
           cursor: 'pointer',
@@ -80,7 +80,7 @@ export default function DailyAgenda() {
   }, []);
 
   return (
-    <div className="calendar-root" aria-label="Daily agenda" style={{ background: '#fff', gridTemplateRows: 'auto 1fr' }}>
+    <div className="calendar-root" aria-label="Daily agenda" style={{ background: 'var(--bw-white)', gridTemplateRows: 'auto 1fr' }}>
       <div className="calendar-toolbar">
         <div className="calendar-month"><strong>Today</strong> — {todayLabel}</div>
         <div className="calendar-tools">
@@ -89,7 +89,7 @@ export default function DailyAgenda() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, padding: 12, height: 'calc(100vh - 56px - 48px)', overflow: 'auto', background: 'var(--bg-editor)' }}>
-        <section style={{ display: 'grid', gridTemplateRows: 'auto 1fr', background: '#fff', border: '1px solid var(--border)', borderRadius: 10, boxShadow: 'var(--shadow-sm)', minHeight: 0 }}>
+        <section style={{ display: 'grid', gridTemplateRows: 'auto 1fr', background: 'var(--bw-white)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: 'var(--shadow-sm)', minHeight: 0 }}>
           {sectionHeader('Overdue', overdueReminders.length)}
           <div style={{ padding: 10, display: 'grid', gap: 8, overflowY: 'auto' }}>
             {overdueReminders.length === 0 && <div className="kanban-empty">Nothing overdue 🎉</div>}
@@ -123,7 +123,7 @@ export default function DailyAgenda() {
           </div>
         </section>
 
-        <section style={{ gridColumn: '1 / span 2', display: 'grid', gridTemplateRows: 'auto 1fr', background: '#fff', border: '1px solid var(--border)', borderRadius: 10, boxShadow: 'var(--shadow-sm)', minHeight: 0 }}>
+        <section style={{ gridColumn: '1 / span 2', display: 'grid', gridTemplateRows: 'auto 1fr', background: 'var(--bw-white)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: 'var(--shadow-sm)', minHeight: 0 }}>
           {sectionHeader('Notes touched today', todayNotes.length)}
           <div style={{ padding: 10, display: 'grid', gap: 8, overflowY: 'auto' }}>
             {todayNotes.length === 0 && <div className="kanban-empty">No notes updated today</div>}
