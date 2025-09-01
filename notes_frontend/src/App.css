@@ -533,6 +533,16 @@ body {
   color: #3730a3;
 }
 
+/* Small generic chip style used for tags (kept minimal to avoid conflicts) */
+.chip {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #f1f5f9;
+  color: #334155;
+}
+
 .kc-snippet {
   margin-top: 6px;
   font-size: 12px;

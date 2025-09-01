@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNotes } from '../context/NotesContext';
 
 /**
  * PUBLIC_INTERFACE
- * Sidebar for search and note navigation.
+ * Sidebar for search, tag filters, and note navigation.
  */
 export default function Sidebar() {
-  const { filteredNotes, selectedId, actions, query, reminders } = useNotes();
+  const { filteredNotes, selectedId, actions, query, reminders, uniqueTags, activeTagFilters } = useNotes();
 
   const [showQuickReminder, setShowQuickReminder] = useState(false);
   const [remTitle, setRemTitle] = useState('');
@@ -74,6 +74,12 @@ export default function Sidebar() {
   };
 
   const hasQuery = (query || '').trim().length > 0;
+
+  // Derived: tags summary string
+  const activeTagsLabel = useMemo(() => {
+    if (!activeTagFilters.length) return 'All';
+    return activeTagFilters.map(t => `#${t}`).join(', ');
+  }, [activeTagFilters]);
 
   return (
     <aside className="sidebar">
@@ -159,6 +165,52 @@ export default function Sidebar() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Tag chips filter */}
+      <div style={{ padding: 12, borderBottom: '1px solid var(--border)', background: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <strong style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Tags</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{activeTagsLabel}</span>
+            <button
+              className="btn"
+              onClick={actions.clearTagFilters}
+              disabled={activeTagFilters.length === 0}
+              style={{ opacity: activeTagFilters.length ? 1 : 0.5 }}
+              aria-label="Clear tag filters"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {uniqueTags.length === 0 && (
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>No tags yet</span>
+          )}
+          {uniqueTags.map(tag => {
+            const isActive = activeTagFilters.includes(tag);
+            return (
+              <button
+                key={tag}
+                className="btn"
+                onClick={() => actions.toggleTagFilter(tag)}
+                aria-pressed={isActive}
+                title={`Filter by #${tag}`}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: 12,
+                  borderRadius: 999,
+                  background: isActive ? 'var(--color-primary)' : '#fff',
+                  borderColor: isActive ? 'var(--color-primary)' : 'var(--border)',
+                  color: isActive ? '#fff' : 'var(--text-primary)'
+                }}
+              >
+                #{tag}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Upcoming Reminders */}
@@ -265,6 +317,27 @@ export default function Sidebar() {
               <div className="note-title" title={note.title || 'Untitled note'}>
                 {titleSnippet ? <Highlighted snippet={titleSnippet} /> : (note.title || 'Untitled note')} {chip}
               </div>
+
+              {/* tags display */}
+              {!!(note.tags && note.tags.length) && (
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', margin: '4px 0' }}>
+                  {note.tags.map(t => (
+                    <span
+                      key={`${note.id}-${t}`}
+                      style={{
+                        fontSize: 10,
+                        padding: '1px 6px',
+                        borderRadius: 999,
+                        border: '1px solid var(--border)',
+                        background: '#eef2ff',
+                        color: '#3730a3'
+                      }}
+                    >
+                      #{t}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               <div className="note-snippet">
                 {contentSnippet ? (

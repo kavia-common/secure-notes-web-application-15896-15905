@@ -3,7 +3,8 @@ import { storage } from '../services/storage';
 
 /**
  * Note shape used in the app.
- * id: string, title: string, content: string, updatedAt: number, reminder?: string|null (ISO), status?: 'todo'|'inprogress'|'done'
+ * id: string, title: string, content: string, updatedAt: number,
+ * reminder?: string|null (ISO), status?: 'todo'|'inprogress'|'done', tags?: string[]
  */
 const NotesContext = createContext(null);
 
@@ -19,42 +20,72 @@ const parseReminderDate = (iso) => {
   return isNaN(d.getTime()) ? null : d;
 };
 
+/** Normalize a list of tags: trim, lowercase, unique, non-empty */
+const normalizeTags = (tags) => {
+  if (!Array.isArray(tags)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const t of tags) {
+    const s = String(t || '').trim().toLowerCase();
+    if (!s || seen.has(s)) continue;
+    seen.add(s);
+    out.push(s);
+  }
+  return out;
+};
+
 /**
  * PUBLIC_INTERFACE
- * Provides notes state and actions for the app (CRUD, selection, search, reminders).
+ * Provides notes state and actions for the app (CRUD, selection, search, reminders, tags).
  */
 export function NotesProvider({ children }) {
   const [notes, setNotes] = useState(() => storage.load() || []);
   const [selectedId, setSelectedId] = useState(() => (notes[0]?.id || null));
   const [query, setQuery] = useState('');
+  const [activeTagFilters, setActiveTagFilters] = useState([]); // string[]
 
   // Persist to localStorage on change
   useEffect(() => {
     storage.save(notes);
   }, [notes]);
 
-  // Computed: filtered and sorted list
+  // Unique tag list across all notes
+  const uniqueTags = useMemo(() => {
+    const set = new Set();
+    for (const n of notes) {
+      (n.tags || []).forEach(t => set.add(t));
+    }
+    return Array.from(set).sort();
+  }, [notes]);
+
+  // Computed: filtered and sorted list (by query AND tags)
   const filteredNotes = useMemo(() => {
     /**
      * Build a searchable and highlightable list of notes.
      * - Filters by query across title, content, and reminder date string.
+     * - Filters by selected tags (note must include all active tags).
      * - Adds highlight ranges and snippet text for UI to render.
      */
     const qRaw = query || '';
     const q = qRaw.trim();
     const base = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
+
+    // Tag filtering first (AND semantics)
+    const tagFiltered = activeTagFilters.length
+      ? base.filter(n => {
+          const nTags = new Set(n.tags || []);
+          return activeTagFilters.every(t => nTags.has(t));
+        })
+      : base;
+
     if (!q) {
       // Map to same shape without highlights/snippets
-      return base.map(n => ({
+      return tagFiltered.map(n => ({
         ...n,
         _match: null,
         _snippets: null,
       }));
     }
-
-    // Utility: safe lowercasing
-    const safeLower = (s) => (s || '').toString().toLowerCase();
-    const qLower = q.toLowerCase();
 
     // Utility: find all match ranges within a string (case-insensitive)
     const findRanges = (text, needle) => {
@@ -115,14 +146,14 @@ export function NotesProvider({ children }) {
     };
 
     const results = [];
-    for (const n of base) {
+    for (const n of tagFiltered) {
       const title = n.title || '';
       const content = n.content || '';
       const reminderText = reminderToString(n.reminder);
 
-      const titleRanges = findRanges(title, qLower);
-      const contentRanges = findRanges(content, qLower);
-      const reminderRanges = findRanges(reminderText, qLower);
+      const titleRanges = findRanges(title, q);
+      const contentRanges = findRanges(content, q);
+      const reminderRanges = findRanges(reminderText, q);
 
       const hasMatch = titleRanges.length > 0 || contentRanges.length > 0 || reminderRanges.length > 0;
       if (!hasMatch) continue;
@@ -150,9 +181,9 @@ export function NotesProvider({ children }) {
       });
     }
 
-    // If query present, return matched results; otherwise base.
-    return results;
-  }, [notes, query]);
+    // If query present, return matched results; otherwise tag-filtered base.
+    return results.length || q ? results : tagFiltered;
+  }, [notes, query, activeTagFilters]);
 
   // Current note by selection
   const currentNote = useMemo(() => {
@@ -168,6 +199,7 @@ export function NotesProvider({ children }) {
       updatedAt: Date.now(),
       reminder: null,
       status: 'todo',
+      tags: [],
     };
     setNotes(prev => [newNote, ...prev]);
     setSelectedId(newNote.id);
@@ -177,7 +209,11 @@ export function NotesProvider({ children }) {
   // PUBLIC_INTERFACE
   const updateNote = (id, patch) => {
     setNotes(prev =>
-      prev.map(n => (n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n))
+      prev.map(n => {
+        if (n.id !== id) return n;
+        const nextTags = patch.tags ? normalizeTags(patch.tags) : n.tags;
+        return { ...n, ...patch, tags: nextTags, updatedAt: Date.now() };
+      })
     );
   };
 
@@ -229,6 +265,8 @@ export function NotesProvider({ children }) {
       content: '',
       updatedAt: Date.now(),
       reminder: iso,
+      status: 'todo',
+      tags: [],
     };
     setNotes(prev => [newNote, ...prev]);
     setSelectedId(newId);
@@ -283,9 +321,47 @@ export function NotesProvider({ children }) {
     return { todayReminders, overdueReminders, todayNotes, sod, eod };
   }, [notes, reminders]);
 
+  // Move via kanban
   const moveNote = (id, status) => {
     updateNote(id, { status });
   };
+
+  // PUBLIC_INTERFACE
+  const setTags = (id, tagsArray) => {
+    updateNote(id, { tags: normalizeTags(tagsArray) });
+  };
+
+  // PUBLIC_INTERFACE
+  const addTag = (id, tag) => {
+    const t = String(tag || '').trim().toLowerCase();
+    if (!t) return;
+    const note = notes.find(n => n.id === id);
+    if (!note) return;
+    const next = normalizeTags([...(note.tags || []), t]);
+    updateNote(id, { tags: next });
+  };
+
+  // PUBLIC_INTERFACE
+  const removeTag = (id, tag) => {
+    const note = notes.find(n => n.id === id);
+    if (!note) return;
+    const t = String(tag || '').trim().toLowerCase();
+    const next = (note.tags || []).filter(x => x !== t);
+    updateNote(id, { tags: next });
+  };
+
+  // PUBLIC_INTERFACE
+  const toggleTagFilter = (tag) => {
+    const t = String(tag || '').trim().toLowerCase();
+    setActiveTagFilters(prev => {
+      const has = prev.includes(t);
+      if (has) return prev.filter(x => x !== t);
+      return [...prev, t];
+    });
+  };
+
+  // PUBLIC_INTERFACE
+  const clearTagFilters = () => setActiveTagFilters([]);
 
   const value = {
     notes,
@@ -295,7 +371,24 @@ export function NotesProvider({ children }) {
     query,
     reminders,
     agenda,
-    actions: { createNote, updateNote, deleteNote, selectNote, setQuery, setReminder, createReminder, moveNote },
+    uniqueTags,
+    activeTagFilters,
+    actions: {
+      createNote,
+      updateNote,
+      deleteNote,
+      selectNote,
+      setQuery,
+      setReminder,
+      createReminder,
+      moveNote,
+      // tag actions
+      setTags,
+      addTag,
+      removeTag,
+      toggleTagFilter,
+      clearTagFilters,
+    },
   };
 
   return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;
