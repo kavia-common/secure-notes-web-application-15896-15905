@@ -1,11 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { storage } from '../services/storage';
-import { buildNoteFromTemplate } from '../services/templates';
 
 /**
  * Note shape used in the app.
- * id: string, title: string, content: string, updatedAt: number,
- * reminder?: string|null (ISO), status?: 'todo'|'inprogress'|'done', tags?: string[]
+ * id: string, title: string, content: string, updatedAt: number
  */
 const NotesContext = createContext(null);
 
@@ -14,177 +12,30 @@ const NotesContext = createContext(null);
  */
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-/** Utility: parse reminder ISO into Date or null */
-const parseReminderDate = (iso) => {
-  if (!iso || typeof iso !== 'string') return null;
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? null : d;
-};
-
-/** Normalize a list of tags: trim, lowercase, unique, non-empty */
-const normalizeTags = (tags) => {
-  if (!Array.isArray(tags)) return [];
-  const out = [];
-  const seen = new Set();
-  for (const t of tags) {
-    const s = String(t || '').trim().toLowerCase();
-    if (!s || seen.has(s)) continue;
-    seen.add(s);
-    out.push(s);
-  }
-  return out;
-};
-
 /**
  * PUBLIC_INTERFACE
- * Provides notes state and actions for the app (CRUD, selection, search, reminders, tags).
+ * Provides notes state and actions for the app (CRUD, selection, search).
  */
 export function NotesProvider({ children }) {
   const [notes, setNotes] = useState(() => storage.load() || []);
   const [selectedId, setSelectedId] = useState(() => (notes[0]?.id || null));
   const [query, setQuery] = useState('');
-  const [activeTagFilters, setActiveTagFilters] = useState([]); // string[]
 
   // Persist to localStorage on change
   useEffect(() => {
     storage.save(notes);
   }, [notes]);
 
-  // Unique tag list across all notes
-  const uniqueTags = useMemo(() => {
-    const set = new Set();
-    for (const n of notes) {
-      (n.tags || []).forEach(t => set.add(t));
-    }
-    return Array.from(set).sort();
-  }, [notes]);
-
-  // Computed: filtered and sorted list (by query AND tags)
+  // Computed: filtered and sorted list
   const filteredNotes = useMemo(() => {
-    /**
-     * Build a searchable and highlightable list of notes.
-     * - Filters by query across title, content, and reminder date string.
-     * - Filters by selected tags (note must include all active tags).
-     * - Adds highlight ranges and snippet text for UI to render.
-     */
-    const qRaw = query || '';
-    const q = qRaw.trim();
+    const q = query.trim().toLowerCase();
     const base = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
-
-    // Tag filtering first (AND semantics)
-    const tagFiltered = activeTagFilters.length
-      ? base.filter(n => {
-          const nTags = new Set(n.tags || []);
-          return activeTagFilters.every(t => nTags.has(t));
-        })
-      : base;
-
-    if (!q) {
-      // Map to same shape without highlights/snippets
-      return tagFiltered.map(n => ({
-        ...n,
-        _match: null,
-        _snippets: null,
-      }));
-    }
-
-    // Utility: find all match ranges within a string (case-insensitive)
-    const findRanges = (text, needle) => {
-      const ranges = [];
-      if (!needle) return ranges;
-      const t = (text || '').toString();
-      const tl = t.toLowerCase();
-      const nl = needle.toLowerCase();
-      if (!nl) return ranges;
-      let idx = 0;
-      while (true) {
-        const found = tl.indexOf(nl, idx);
-        if (found === -1) break;
-        ranges.push([found, found + nl.length]);
-        idx = found + nl.length;
-      }
-      return ranges;
-    };
-
-    // Utility: build snippet around first range with some context
-    const buildSnippet = (text, ranges, before = 30, after = 40) => {
-      const t = (text || '').toString();
-      if (!ranges || ranges.length === 0) {
-        // Fallback: head of text
-        const head = t.slice(0, before + after);
-        return {
-          text: head,
-          ranges: [],
-          prefixEllipsis: false,
-          suffixEllipsis: t.length > head.length,
-        };
-      }
-      const [start, end] = ranges[0];
-      const s = Math.max(0, start - before);
-      const e = Math.min(t.length, end + after);
-      const snippetText = t.slice(s, e);
-      // Shift ranges to snippet-local coordinates
-      const shifted = ranges
-        .map(([a, b]) => {
-          if (b <= s || a >= e) return null;
-          return [Math.max(0, a - s), Math.min(e - s, b - s)];
-        })
-        .filter(Boolean);
-      return {
-        text: snippetText,
-        ranges: shifted,
-        prefixEllipsis: s > 0,
-        suffixEllipsis: e < t.length,
-      };
-    };
-
-    // Utility: renderable reminder string
-    const reminderToString = (iso) => {
-      if (!iso) return '';
-      const d = new Date(iso);
-      if (isNaN(d.getTime())) return String(iso);
-      return d.toLocaleString();
-    };
-
-    const results = [];
-    for (const n of tagFiltered) {
-      const title = n.title || '';
-      const content = n.content || '';
-      const reminderText = reminderToString(n.reminder);
-
-      const titleRanges = findRanges(title, q);
-      const contentRanges = findRanges(content, q);
-      const reminderRanges = findRanges(reminderText, q);
-
-      const hasMatch = titleRanges.length > 0 || contentRanges.length > 0 || reminderRanges.length > 0;
-      if (!hasMatch) continue;
-
-      // Build snippets for each field if matched
-      const snippets = {};
-      if (titleRanges.length) {
-        snippets.title = buildSnippet(title, titleRanges, 0, 0); // show whole title
-      }
-      if (contentRanges.length) {
-        snippets.content = buildSnippet(content.replace(/\n+/g, ' '), contentRanges);
-      }
-      if (reminderRanges.length) {
-        snippets.reminder = buildSnippet(reminderText, reminderRanges, 0, 0);
-      }
-
-      results.push({
-        ...n,
-        _match: {
-          inTitle: titleRanges.length > 0,
-          inContent: contentRanges.length > 0,
-          inReminder: reminderRanges.length > 0,
-        },
-        _snippets: snippets,
-      });
-    }
-
-    // If query present, return matched results; otherwise tag-filtered base.
-    return results.length || q ? results : tagFiltered;
-  }, [notes, query, activeTagFilters]);
+    if (!q) return base;
+    return base.filter(n =>
+      n.title.toLowerCase().includes(q) ||
+      n.content.toLowerCase().includes(q)
+    );
+  }, [notes, query]);
 
   // Current note by selection
   const currentNote = useMemo(() => {
@@ -198,31 +49,6 @@ export function NotesProvider({ children }) {
       title: 'Untitled note',
       content: '',
       updatedAt: Date.now(),
-      reminder: null,
-      status: 'todo',
-      tags: [],
-    };
-    setNotes(prev => [newNote, ...prev]);
-    setSelectedId(newNote.id);
-    return newNote.id;
-  };
-
-  // PUBLIC_INTERFACE
-  /**
-   * Create a new note from a predefined template.
-   * @param {string} templateKey - key from NoteTemplates (e.g., 'meeting', 'daily_journal', 'todo', 'blank')
-   * @returns {string} id of created note
-   */
-  const createNoteFromTemplate = (templateKey) => {
-    const draft = buildNoteFromTemplate(templateKey);
-    const newNote = {
-      id: uid(),
-      title: draft.title,
-      content: draft.content,
-      updatedAt: Date.now(),
-      reminder: null,
-      status: 'todo',
-      tags: [],
     };
     setNotes(prev => [newNote, ...prev]);
     setSelectedId(newNote.id);
@@ -232,11 +58,7 @@ export function NotesProvider({ children }) {
   // PUBLIC_INTERFACE
   const updateNote = (id, patch) => {
     setNotes(prev =>
-      prev.map(n => {
-        if (n.id !== id) return n;
-        const nextTags = patch.tags ? normalizeTags(patch.tags) : n.tags;
-        return { ...n, ...patch, tags: nextTags, updatedAt: Date.now() };
-      })
+      prev.map(n => (n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n))
     );
   };
 
@@ -253,166 +75,13 @@ export function NotesProvider({ children }) {
   // PUBLIC_INTERFACE
   const selectNote = (id) => setSelectedId(id);
 
-  // PUBLIC_INTERFACE
-  const setReminder = (id, isoOrNull) => {
-    updateNote(id, { reminder: isoOrNull || null });
-  };
-
-  // PUBLIC_INTERFACE
-  const createReminder = ({ date, time, title, linkToNoteId = null }) => {
-    /**
-     * Create a reminder either by:
-     * - linking to an existing note (set its reminder), or
-     * - creating a lightweight "reminder note" with the provided title.
-     */
-    const buildIso = () => {
-      if (!date) return null;
-      if (time) return `${date}T${time}`;
-      return `${date}T09:00`;
-    };
-    const iso = buildIso();
-    if (!iso) return null;
-
-    if (linkToNoteId) {
-      // Attach to an existing note
-      setReminder(linkToNoteId, iso);
-      return linkToNoteId;
-    }
-
-    // Create a standalone reminder as a new note with minimal content
-    const noteTitle = (title && title.trim()) || 'Reminder';
-    const newId = uid();
-    const newNote = {
-      id: newId,
-      title: noteTitle,
-      content: '',
-      updatedAt: Date.now(),
-      reminder: iso,
-      status: 'todo',
-      tags: [],
-    };
-    setNotes(prev => [newNote, ...prev]);
-    setSelectedId(newId);
-    return newId;
-  };
-
-  // Derived: reminders list (upcoming & overdue)
-  const reminders = useMemo(() => {
-    const now = Date.now();
-    const soonThresholdMs = 24 * 60 * 60 * 1000; // 24h
-    const items = notes
-      .map(n => {
-        const d = parseReminderDate(n.reminder);
-        if (!d) return null;
-        const time = d.getTime();
-        const overdue = time < now;
-        const soon = !overdue && time - now <= soonThresholdMs;
-        return {
-          id: n.id,
-          title: n.title || 'Untitled note',
-          when: d,
-          overdue,
-          soon,
-        };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.when.getTime() - b.when.getTime());
-    return items;
-  }, [notes]);
-
-  // Derived: agenda data for the Daily Agenda view
-  const agenda = useMemo(() => {
-    const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    const today = new Date();
-    const sod = startOfDay(today);
-    const eod = sod + 24 * 60 * 60 * 1000 - 1;
-
-    // Today's reminders: reminders that fall within [sod, eod]
-    const todayReminders = reminders.filter(r => {
-      const t = r.when.getTime();
-      return t >= sod && t <= eod && !r.overdue; // if overdue it will be in overdue section
-    });
-
-    // Overdue reminders: already in reminders with overdue flag
-    const overdueReminders = reminders.filter(r => r.overdue);
-
-    // Notes updated today (regardless of having reminders)
-    const todayNotes = notes
-      .filter(n => typeof n.updatedAt === 'number' && n.updatedAt >= sod && n.updatedAt <= eod)
-      .sort((a, b) => b.updatedAt - a.updatedAt);
-
-    return { todayReminders, overdueReminders, todayNotes, sod, eod };
-  }, [notes, reminders]);
-
-  // Move via kanban
-  const moveNote = (id, status) => {
-    updateNote(id, { status });
-  };
-
-  // PUBLIC_INTERFACE
-  const setTags = (id, tagsArray) => {
-    updateNote(id, { tags: normalizeTags(tagsArray) });
-  };
-
-  // PUBLIC_INTERFACE
-  const addTag = (id, tag) => {
-    const t = String(tag || '').trim().toLowerCase();
-    if (!t) return;
-    const note = notes.find(n => n.id === id);
-    if (!note) return;
-    const next = normalizeTags([...(note.tags || []), t]);
-    updateNote(id, { tags: next });
-  };
-
-  // PUBLIC_INTERFACE
-  const removeTag = (id, tag) => {
-    const note = notes.find(n => n.id === id);
-    if (!note) return;
-    const t = String(tag || '').trim().toLowerCase();
-    const next = (note.tags || []).filter(x => x !== t);
-    updateNote(id, { tags: next });
-  };
-
-  // PUBLIC_INTERFACE
-  const toggleTagFilter = (tag) => {
-    const t = String(tag || '').trim().toLowerCase();
-    setActiveTagFilters(prev => {
-      const has = prev.includes(t);
-      if (has) return prev.filter(x => x !== t);
-      return [...prev, t];
-    });
-  };
-
-  // PUBLIC_INTERFACE
-  const clearTagFilters = () => setActiveTagFilters([]);
-
   const value = {
     notes,
     filteredNotes,
     currentNote,
     selectedId,
     query,
-    reminders,
-    agenda,
-    uniqueTags,
-    activeTagFilters,
-    actions: {
-      createNote,
-      createNoteFromTemplate,
-      updateNote,
-      deleteNote,
-      selectNote,
-      setQuery,
-      setReminder,
-      createReminder,
-      moveNote,
-      // tag actions
-      setTags,
-      addTag,
-      removeTag,
-      toggleTagFilter,
-      clearTagFilters,
-    },
+    actions: { createNote, updateNote, deleteNote, selectNote, setQuery },
   };
 
   return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;
