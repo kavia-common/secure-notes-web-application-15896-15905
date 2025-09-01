@@ -6,7 +6,7 @@ import { useNotes } from '../context/NotesContext';
  * Top navigation bar containing brand and actions.
  *
  * Accepts optional props:
- * - viewMode: 'editor' | 'calendar' | 'kanban'
+ * - viewMode: 'editor' | 'calendar' | 'kanban' | 'agenda'
  * - onChangeView: (mode) => void
  */
 export default function Topbar({ viewMode = 'editor', onChangeView = () => {} }) {
@@ -23,6 +23,7 @@ export default function Topbar({ viewMode = 'editor', onChangeView = () => {} })
   const isEditor = viewMode === 'editor';
   const isCalendar = viewMode === 'calendar';
   const isKanban = viewMode === 'kanban';
+  const isAgenda = viewMode === 'agenda';
 
   return (
     <header className="topbar" role="banner">
@@ -49,6 +50,15 @@ export default function Topbar({ viewMode = 'editor', onChangeView = () => {} })
             title="Calendar view"
           >
             📅 Calendar
+          </button>
+          <button
+            role="tab"
+            aria-selected={isAgenda}
+            className="btn"
+            onClick={() => onChangeView('agenda')}
+            title="Daily agenda"
+          >
+            📋 Agenda
           </button>
           <button
             role="tab"

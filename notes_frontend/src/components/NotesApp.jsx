@@ -5,6 +5,7 @@ import Sidebar from './Sidebar';
 import EditorPane from './EditorPane';
 import CalendarView from './CalendarView';
 import KanbanView from './KanbanView';
+import DailyAgenda from './DailyAgenda';
 
 /**
  * PUBLIC_INTERFACE
@@ -12,7 +13,7 @@ import KanbanView from './KanbanView';
  * Adds a Calendar view that can be toggled from the Topbar.
  */
 export default function NotesApp() {
-  const [viewMode, setViewMode] = useState('editor'); // 'editor' | 'calendar' | 'kanban'
+  const [viewMode, setViewMode] = useState('editor'); // 'editor' | 'calendar' | 'kanban' | 'agenda'
 
   return (
     <NotesProvider>
@@ -25,6 +26,10 @@ export default function NotesApp() {
         ) : viewMode === 'kanban' ? (
           <div className="content" style={{ gridTemplateColumns: '1fr' }}>
             <KanbanView />
+          </div>
+        ) : viewMode === 'agenda' ? (
+          <div className="content" style={{ gridTemplateColumns: '1fr' }}>
+            <DailyAgenda />
           </div>
         ) : (
           <div className="content">

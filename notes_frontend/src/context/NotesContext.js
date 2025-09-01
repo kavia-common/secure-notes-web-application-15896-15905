@@ -259,6 +259,30 @@ export function NotesProvider({ children }) {
     return items;
   }, [notes]);
 
+  // Derived: agenda data for the Daily Agenda view
+  const agenda = useMemo(() => {
+    const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const today = new Date();
+    const sod = startOfDay(today);
+    const eod = sod + 24 * 60 * 60 * 1000 - 1;
+
+    // Today's reminders: reminders that fall within [sod, eod]
+    const todayReminders = reminders.filter(r => {
+      const t = r.when.getTime();
+      return t >= sod && t <= eod && !r.overdue; // if overdue it will be in overdue section
+    });
+
+    // Overdue reminders: already in reminders with overdue flag
+    const overdueReminders = reminders.filter(r => r.overdue);
+
+    // Notes updated today (regardless of having reminders)
+    const todayNotes = notes
+      .filter(n => typeof n.updatedAt === 'number' && n.updatedAt >= sod && n.updatedAt <= eod)
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+
+    return { todayReminders, overdueReminders, todayNotes, sod, eod };
+  }, [notes, reminders]);
+
   const moveNote = (id, status) => {
     updateNote(id, { status });
   };
@@ -270,6 +294,7 @@ export function NotesProvider({ children }) {
     selectedId,
     query,
     reminders,
+    agenda,
     actions: { createNote, updateNote, deleteNote, selectNote, setQuery, setReminder, createReminder, moveNote },
   };
 
