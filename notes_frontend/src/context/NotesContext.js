@@ -21,7 +21,7 @@ const parseReminderDate = (iso) => {
 
 /**
  * PUBLIC_INTERFACE
- * Provides notes state and actions for the app (CRUD, selection, search).
+ * Provides notes state and actions for the app (CRUD, selection, search, reminders).
  */
 export function NotesProvider({ children }) {
   const [notes, setNotes] = useState(() => storage.load() || []);
@@ -88,6 +88,42 @@ export function NotesProvider({ children }) {
     updateNote(id, { reminder: isoOrNull || null });
   };
 
+  // PUBLIC_INTERFACE
+  const createReminder = ({ date, time, title, linkToNoteId = null }) => {
+    /**
+     * Create a reminder either by:
+     * - linking to an existing note (set its reminder), or
+     * - creating a lightweight "reminder note" with the provided title.
+     */
+    const buildIso = () => {
+      if (!date) return null;
+      if (time) return `${date}T${time}`;
+      return `${date}T09:00`;
+    };
+    const iso = buildIso();
+    if (!iso) return null;
+
+    if (linkToNoteId) {
+      // Attach to an existing note
+      setReminder(linkToNoteId, iso);
+      return linkToNoteId;
+    }
+
+    // Create a standalone reminder as a new note with minimal content
+    const noteTitle = (title && title.trim()) || 'Reminder';
+    const newId = uid();
+    const newNote = {
+      id: newId,
+      title: noteTitle,
+      content: '',
+      updatedAt: Date.now(),
+      reminder: iso,
+    };
+    setNotes(prev => [newNote, ...prev]);
+    setSelectedId(newId);
+    return newId;
+  };
+
   // Derived: reminders list (upcoming & overdue)
   const reminders = useMemo(() => {
     const now = Date.now();
@@ -119,7 +155,7 @@ export function NotesProvider({ children }) {
     selectedId,
     query,
     reminders,
-    actions: { createNote, updateNote, deleteNote, selectNote, setQuery, setReminder },
+    actions: { createNote, updateNote, deleteNote, selectNote, setQuery, setReminder, createReminder },
   };
 
   return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;

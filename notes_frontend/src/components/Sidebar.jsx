@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNotes } from '../context/NotesContext';
 
 /**
@@ -8,10 +8,43 @@ import { useNotes } from '../context/NotesContext';
 export default function Sidebar() {
   const { filteredNotes, selectedId, actions, query, reminders } = useNotes();
 
+  const [showQuickReminder, setShowQuickReminder] = useState(false);
+  const [remTitle, setRemTitle] = useState('');
+  const [remDate, setRemDate] = useState('');
+  const [remTime, setRemTime] = useState('');
+  const [linkToCurrent, setLinkToCurrent] = useState(true);
+
   const badgeStyle = (overdue, soon) => {
     if (overdue) return { background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' };
     if (soon) return { background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa' };
     return { background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe' };
+  };
+
+  const resetQuickForm = () => {
+    setRemTitle('');
+    setRemDate('');
+    setRemTime('');
+    setLinkToCurrent(true);
+  };
+
+  const submitQuickReminder = () => {
+    if (!remDate) {
+      alert('Please choose a date for the reminder.');
+      return;
+    }
+    const payload = {
+      date: remDate,
+      time: remTime,
+      title: remTitle,
+      linkToNoteId: linkToCurrent ? selectedId : null,
+    };
+    const createdId = actions.createReminder(payload);
+    if (createdId) {
+      // Select the note associated with the reminder
+      actions.selectNote(createdId);
+    }
+    resetQuickForm();
+    setShowQuickReminder(false);
   };
 
   return (
@@ -26,6 +59,78 @@ export default function Sidebar() {
             onChange={(e) => actions.setQuery(e.target.value)}
           />
         </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <button className="btn btn-primary" onClick={actions.createNote} aria-label="Create new note">
+            New note
+          </button>
+          <button
+            className="btn"
+            onClick={() => setShowQuickReminder((v) => !v)}
+            aria-label="Create new reminder"
+            title="Create a new reminder"
+          >
+            New reminder
+          </button>
+        </div>
+        {showQuickReminder && (
+          <div
+            aria-label="Quick reminder"
+            style={{
+              marginTop: 10,
+              padding: 10,
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              background: '#fff',
+              boxShadow: 'var(--shadow-sm)',
+              display: 'grid',
+              gap: 8
+            }}
+          >
+            <input
+              className="input-title"
+              placeholder="Reminder title (optional)"
+              aria-label="Reminder title"
+              value={remTitle}
+              onChange={(e) => setRemTitle(e.target.value)}
+              style={{ fontSize: 14, padding: '8px 10px' }}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="date"
+                className="input-title"
+                aria-label="Reminder date"
+                value={remDate}
+                onChange={(e) => setRemDate(e.target.value)}
+                style={{ maxWidth: 180, padding: '8px 10px', fontSize: 14 }}
+              />
+              <input
+                type="time"
+                className="input-title"
+                aria-label="Reminder time"
+                value={remTime}
+                onChange={(e) => setRemTime(e.target.value)}
+                style={{ maxWidth: 120, padding: '8px 10px', fontSize: 14 }}
+              />
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
+              <input
+                type="checkbox"
+                checked={!!selectedId && linkToCurrent}
+                onChange={(e) => setLinkToCurrent(e.target.checked)}
+                disabled={!selectedId}
+              />
+              Link to selected note{!selectedId ? ' (select a note to enable)' : ''}
+            </label>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn" onClick={() => { resetQuickForm(); setShowQuickReminder(false); }}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={submitQuickReminder}>
+                Save reminder
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Upcoming Reminders */}
