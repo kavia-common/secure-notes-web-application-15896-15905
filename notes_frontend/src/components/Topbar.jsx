@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNotes } from '../context/NotesContext';
+import { NoteTemplates } from '../services/templates';
 
 /**
  * PUBLIC_INTERFACE
@@ -25,13 +26,46 @@ export default function Topbar({ viewMode = 'editor', onChangeView = () => {} })
   const isKanban = viewMode === 'kanban';
   const isAgenda = viewMode === 'agenda';
 
+  const [showTemplates, setShowTemplates] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close menu on outside click or Escape
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (!menuRef.current) return;
+      if (e.type === 'keydown' && e.key === 'Escape') {
+        setShowTemplates(false);
+        return;
+      }
+      if (e.type === 'mousedown' && !menuRef.current.contains(e.target)) {
+        setShowTemplates(false);
+      }
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onDoc);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onDoc);
+    };
+  }, []);
+
+  const createFromTemplate = (key) => {
+    if (key === 'blank') {
+      actions.createNote();
+    } else {
+      actions.createNoteFromTemplate?.(key);
+    }
+    setShowTemplates(false);
+    if (viewMode !== 'editor') onChangeView('editor');
+  };
+
   return (
     <header className="topbar" role="banner">
       <div className="brand" aria-label="Application brand">
         <div className="brand-badge">N</div>
         <div>Notes</div>
       </div>
-      <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
         <div role="tablist" aria-label="View switch" style={{ display: 'flex', gap: 6 }}>
           <button
             role="tab"
@@ -71,9 +105,62 @@ export default function Topbar({ viewMode = 'editor', onChangeView = () => {} })
           </button>
         </div>
         <div style={{ width: 12 }} />
-        <button className="btn btn-primary" onClick={actions.createNote} aria-label="Create new note">
-          New
-        </button>
+        <div ref={menuRef} style={{ position: 'relative' }}>
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowTemplates((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={showTemplates}
+            aria-label="Create new note"
+            title="Create new note"
+          >
+            New ▾
+          </button>
+          {showTemplates && (
+            <div
+              role="menu"
+              aria-label="Note templates"
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: 'calc(100% + 6px)',
+                minWidth: 280,
+                background: '#fff',
+                border: '1px solid var(--border)',
+                borderRadius: 10,
+                boxShadow: 'var(--shadow-md)',
+                padding: 6,
+                zIndex: 20,
+                display: 'grid',
+                gap: 4,
+              }}
+            >
+              {NoteTemplates.map(t => (
+                <button
+                  key={t.key}
+                  role="menuitem"
+                  className="btn"
+                  onClick={() => createFromTemplate(t.key)}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '24px 1fr',
+                    alignItems: 'start',
+                    gap: 8,
+                    textAlign: 'left',
+                    background: '#fff',
+                  }}
+                  title={t.description}
+                >
+                  <span aria-hidden="true">{t.emoji}</span>
+                  <span>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{t.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t.description}</div>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <button
           className="btn btn-accent"
           onClick={handleDelete}

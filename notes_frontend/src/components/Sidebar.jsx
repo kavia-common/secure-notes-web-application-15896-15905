@@ -1,10 +1,73 @@
 import React, { useMemo, useState } from 'react';
 import { useNotes } from '../context/NotesContext';
+import { NoteTemplates } from '../services/templates';
 
 /**
  * PUBLIC_INTERFACE
  * Sidebar for search, tag filters, and note navigation.
  */
+function TemplatePickerButton({ onPick = () => {} }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        className="btn btn-primary"
+        onClick={() => setOpen(v => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Create new note"
+        title="Create new note"
+      >
+        New note ▾
+      </button>
+      {open && (
+        <div
+          role="menu"
+          aria-label="Note templates"
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 'calc(100% + 6px)',
+            minWidth: 260,
+            background: '#fff',
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            boxShadow: 'var(--shadow-md)',
+            padding: 6,
+            zIndex: 10,
+            display: 'grid',
+            gap: 4,
+          }}
+        >
+          {NoteTemplates.map(t => (
+            <button
+              key={t.key}
+              role="menuitem"
+              className="btn"
+              onClick={() => { onPick(t.key); setOpen(false); }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '24px 1fr',
+                alignItems: 'start',
+                gap: 8,
+                textAlign: 'left',
+                background: '#fff',
+              }}
+              title={t.description}
+            >
+              <span aria-hidden="true">{t.emoji}</span>
+              <span>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{t.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t.description}</div>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Sidebar() {
   const { filteredNotes, selectedId, actions, query, reminders, uniqueTags, activeTagFilters } = useNotes();
 
@@ -93,10 +156,11 @@ export default function Sidebar() {
             onChange={(e) => actions.setQuery(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <button className="btn btn-primary" onClick={actions.createNote} aria-label="Create new note">
-            New note
-          </button>
+        <div style={{ display: 'flex', gap: 8, marginTop: 8, position: 'relative' }}>
+          <TemplatePickerButton onPick={(k) => {
+            if (k === 'blank') actions.createNote();
+            else actions.createNoteFromTemplate?.(k);
+          }} />
           <button
             className="btn"
             onClick={() => setShowQuickReminder((v) => !v)}
@@ -270,7 +334,12 @@ export default function Sidebar() {
           <div className="empty-card">
             <h3>No notes found</h3>
             <p>Try creating a new note or adjust your search.</p>
-            <button className="btn btn-primary" onClick={actions.createNote}>New note</button>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <TemplatePickerButton onPick={(k) => {
+                if (k === 'blank') actions.createNote();
+                else actions.createNoteFromTemplate?.(k);
+              }} />
+            </div>
           </div>
         )}
         {filteredNotes.map(note => {

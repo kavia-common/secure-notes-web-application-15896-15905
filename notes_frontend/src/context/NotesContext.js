@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { storage } from '../services/storage';
+import { buildNoteFromTemplate } from '../services/templates';
 
 /**
  * Note shape used in the app.
@@ -207,6 +208,28 @@ export function NotesProvider({ children }) {
   };
 
   // PUBLIC_INTERFACE
+  /**
+   * Create a new note from a predefined template.
+   * @param {string} templateKey - key from NoteTemplates (e.g., 'meeting', 'daily_journal', 'todo', 'blank')
+   * @returns {string} id of created note
+   */
+  const createNoteFromTemplate = (templateKey) => {
+    const draft = buildNoteFromTemplate(templateKey);
+    const newNote = {
+      id: uid(),
+      title: draft.title,
+      content: draft.content,
+      updatedAt: Date.now(),
+      reminder: null,
+      status: 'todo',
+      tags: [],
+    };
+    setNotes(prev => [newNote, ...prev]);
+    setSelectedId(newNote.id);
+    return newNote.id;
+  };
+
+  // PUBLIC_INTERFACE
   const updateNote = (id, patch) => {
     setNotes(prev =>
       prev.map(n => {
@@ -375,6 +398,7 @@ export function NotesProvider({ children }) {
     activeTagFilters,
     actions: {
       createNote,
+      createNoteFromTemplate,
       updateNote,
       deleteNote,
       selectNote,
