@@ -35,13 +35,123 @@ export function NotesProvider({ children }) {
 
   // Computed: filtered and sorted list
   const filteredNotes = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    /**
+     * Build a searchable and highlightable list of notes.
+     * - Filters by query across title, content, and reminder date string.
+     * - Adds highlight ranges and snippet text for UI to render.
+     */
+    const qRaw = query || '';
+    const q = qRaw.trim();
     const base = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
-    if (!q) return base;
-    return base.filter(n =>
-      n.title.toLowerCase().includes(q) ||
-      n.content.toLowerCase().includes(q)
-    );
+    if (!q) {
+      // Map to same shape without highlights/snippets
+      return base.map(n => ({
+        ...n,
+        _match: null,
+        _snippets: null,
+      }));
+    }
+
+    // Utility: safe lowercasing
+    const safeLower = (s) => (s || '').toString().toLowerCase();
+    const qLower = q.toLowerCase();
+
+    // Utility: find all match ranges within a string (case-insensitive)
+    const findRanges = (text, needle) => {
+      const ranges = [];
+      if (!needle) return ranges;
+      const t = (text || '').toString();
+      const tl = t.toLowerCase();
+      const nl = needle.toLowerCase();
+      if (!nl) return ranges;
+      let idx = 0;
+      while (true) {
+        const found = tl.indexOf(nl, idx);
+        if (found === -1) break;
+        ranges.push([found, found + nl.length]);
+        idx = found + nl.length;
+      }
+      return ranges;
+    };
+
+    // Utility: build snippet around first range with some context
+    const buildSnippet = (text, ranges, before = 30, after = 40) => {
+      const t = (text || '').toString();
+      if (!ranges || ranges.length === 0) {
+        // Fallback: head of text
+        const head = t.slice(0, before + after);
+        return {
+          text: head,
+          ranges: [],
+          prefixEllipsis: false,
+          suffixEllipsis: t.length > head.length,
+        };
+      }
+      const [start, end] = ranges[0];
+      const s = Math.max(0, start - before);
+      const e = Math.min(t.length, end + after);
+      const snippetText = t.slice(s, e);
+      // Shift ranges to snippet-local coordinates
+      const shifted = ranges
+        .map(([a, b]) => {
+          if (b <= s || a >= e) return null;
+          return [Math.max(0, a - s), Math.min(e - s, b - s)];
+        })
+        .filter(Boolean);
+      return {
+        text: snippetText,
+        ranges: shifted,
+        prefixEllipsis: s > 0,
+        suffixEllipsis: e < t.length,
+      };
+    };
+
+    // Utility: renderable reminder string
+    const reminderToString = (iso) => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return String(iso);
+      return d.toLocaleString();
+    };
+
+    const results = [];
+    for (const n of base) {
+      const title = n.title || '';
+      const content = n.content || '';
+      const reminderText = reminderToString(n.reminder);
+
+      const titleRanges = findRanges(title, qLower);
+      const contentRanges = findRanges(content, qLower);
+      const reminderRanges = findRanges(reminderText, qLower);
+
+      const hasMatch = titleRanges.length > 0 || contentRanges.length > 0 || reminderRanges.length > 0;
+      if (!hasMatch) continue;
+
+      // Build snippets for each field if matched
+      const snippets = {};
+      if (titleRanges.length) {
+        snippets.title = buildSnippet(title, titleRanges, 0, 0); // show whole title
+      }
+      if (contentRanges.length) {
+        snippets.content = buildSnippet(content.replace(/\n+/g, ' '), contentRanges);
+      }
+      if (reminderRanges.length) {
+        snippets.reminder = buildSnippet(reminderText, reminderRanges, 0, 0);
+      }
+
+      results.push({
+        ...n,
+        _match: {
+          inTitle: titleRanges.length > 0,
+          inContent: contentRanges.length > 0,
+          inReminder: reminderRanges.length > 0,
+        },
+        _snippets: snippets,
+      });
+    }
+
+    // If query present, return matched results; otherwise base.
+    return results;
   }, [notes, query]);
 
   // Current note by selection

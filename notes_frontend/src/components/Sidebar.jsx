@@ -47,6 +47,34 @@ export default function Sidebar() {
     setShowQuickReminder(false);
   };
 
+  // Render text with highlighted ranges.
+  const Highlighted = ({ snippet }) => {
+    if (!snippet || typeof snippet.text !== 'string') return null;
+    const { text, ranges, prefixEllipsis, suffixEllipsis } = snippet;
+    if (!ranges || ranges.length === 0) {
+      return <span>{prefixEllipsis ? '…' : ''}{text}{suffixEllipsis ? '…' : ''}</span>;
+    }
+    const parts = [];
+    let cursor = 0;
+    for (const [start, end] of ranges) {
+      if (cursor < start) {
+        parts.push(<span key={`t-${cursor}-${start}`}>{text.slice(cursor, start)}</span>);
+      }
+      parts.push(
+        <mark key={`m-${start}-${end}`} style={{ background: 'rgba(255,204,0,0.4)', padding: 0 }}>
+          {text.slice(start, end)}
+        </mark>
+      );
+      cursor = end;
+    }
+    if (cursor < text.length) {
+      parts.push(<span key={`t-end-${cursor}`}>{text.slice(cursor)}</span>);
+    }
+    return <span>{prefixEllipsis ? '…' : ''}{parts}{suffixEllipsis ? '…' : ''}</span>;
+  };
+
+  const hasQuery = (query || '').trim().length > 0;
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -195,7 +223,6 @@ export default function Sidebar() {
         )}
         {filteredNotes.map(note => {
           const isActive = note.id === selectedId;
-          const snippet = (note.content || '').replace(/\n+/g, ' ').slice(0, 80);
           const updated = new Date(note.updatedAt).toLocaleString();
 
           // Small inline reminder chip in list
@@ -217,6 +244,14 @@ export default function Sidebar() {
             }
           }
 
+          // When searching, show contextual highlights; otherwise the classic snippet
+          const showHighlights = hasQuery && note._snippets;
+          const titleSnippet = showHighlights && note._snippets.title;
+          const contentSnippet = showHighlights && note._snippets.content;
+          const reminderSnippet = showHighlights && note._snippets.reminder;
+
+          const defaultSnippet = (note.content || '').replace(/\n+/g, ' ').slice(0, 80) || 'No content yet.';
+
           return (
             <div
               key={note.id}
@@ -227,10 +262,24 @@ export default function Sidebar() {
               onKeyDown={(e) => { if (e.key === 'Enter') actions.selectNote(note.id); }}
               aria-pressed={isActive}
             >
-              <div className="note-title">
-                {note.title || 'Untitled note'} {chip}
+              <div className="note-title" title={note.title || 'Untitled note'}>
+                {titleSnippet ? <Highlighted snippet={titleSnippet} /> : (note.title || 'Untitled note')} {chip}
               </div>
-              <div className="note-snippet">{snippet || 'No content yet.'}</div>
+
+              <div className="note-snippet">
+                {contentSnippet ? (
+                  <span><Highlighted snippet={contentSnippet} /></span>
+                ) : (
+                  defaultSnippet
+                )}
+              </div>
+
+              {reminderSnippet && (
+                <div className="note-snippet" style={{ fontSize: 11 }}>
+                  ⏰ <Highlighted snippet={reminderSnippet} />
+                </div>
+              )}
+
               <div className="note-meta">
                 <span>{updated}</span>
                 {isActive && <span style={{ color: 'var(--color-primary)' }}>Selected</span>}
